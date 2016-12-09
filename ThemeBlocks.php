@@ -13,14 +13,12 @@ if (!defined('ABSPATH')) {
 	exit;
 }
 
-// TODO
-// - Render error messages to admin
-
 class ThemeBlocks {
 
 	protected static $instance = null;
 
 	public $config = [
+		'shortcode' => 'block',
 		'templateDir' => '/blocks', // Filter to blank string to use theme root.
 	];
 
@@ -36,10 +34,7 @@ class ThemeBlocks {
 	function __construct() {
 		$this->overrideConfig();
 		$this->findBlocks();
-
-		if ( !is_admin() ) {
-			var_dump($this->blocks);
-		}
+		$this->registerShortcode();
 	}
 
 	function overrideConfig() {
@@ -63,9 +58,47 @@ class ThemeBlocks {
 					continue;
 				}
 
-				$this->blocks[ $file ] = _cleanup_header_comment( $header[1] );
+				// Strip extension
+				$blockName = preg_replace( '/\\.php$/', '', $file );
+
+				$this->blocks[ $blockName ] = [
+					'name' => _cleanup_header_comment( $header[1] ),
+					'path' => $full_path,
+				];
 			}
 		}
+	}
+
+	function registerShortcode() {
+		add_shortcode( 'block', [ $this, 'renderBlock' ] );
+	}
+
+	function renderBlock( $attributes ) {
+		if ( empty( $attributes ) ) {
+			return $this->renderError( 'No block selected' );
+		}
+
+		$blockName = $attributes[0];
+
+		if ( !array_key_exists( $blockName, $this->blocks ) ) {
+			return $this->renderError( 'Invalid block selected' );
+		}
+
+		$blockTemplate = $this->blocks[ $blockName ][ 'path' ];
+
+		ob_start();
+		load_template( $blockTemplate, false );
+		$blockContent = ob_get_clean();
+
+		return $blockContent;
+	}
+
+	function renderError( $message ) {
+		// Only show errors to an admin.
+		if ( current_user_can( 'manage_options' ) ) {
+			return 'ThemeBlocks error: ' . $message;
+		}
+		return '';
 	}
 
 	public function getFiles( $type = null, $depth = 0, $search_parent = false ) {
