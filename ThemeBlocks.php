@@ -35,6 +35,7 @@ class ThemeBlocks {
 		$this->overrideConfig();
 		$this->findBlocks();
 		$this->registerShortcode();
+		$this->adminHooks();
 	}
 
 	function overrideConfig() {
@@ -71,6 +72,40 @@ class ThemeBlocks {
 
 	function registerShortcode() {
 		add_shortcode( 'block', [ $this, 'renderBlock' ] );
+	}
+
+	function adminHooks() {
+		if ( is_admin() ){
+			add_action( 'admin_head', [ $this, 'adminHead' ] );
+			add_action( 'admin_enqueue_scripts', array($this , 'adminScripts' ) );
+		}
+	}
+
+	function adminHead() {
+		if ( !current_user_can( 'edit_posts' ) && !current_user_can( 'edit_pages' ) ) return;
+
+		if ( 'true' == get_user_option( 'rich_editing' ) ) {
+			add_filter( 'mce_external_plugins', [ $this ,'registerMcePlugin' ] );
+			add_filter( 'mce_buttons', [ $this, 'registerMceButton' ] );
+
+			$jsConfig = $this->config;
+			$jsConfig['blocks'] = wp_list_pluck( $this->blocks, 'name' );
+			printf( "<script>\nvar ThemeBlocksConfig = %s;\n</script>\n", json_encode( $jsConfig ) );
+		}
+	}
+
+	function registerMcePlugin( $plugins ) {
+		$plugins[ 'theme-blocks' ] = plugins_url( 'mce-plugin.js' , __FILE__ );
+		return $plugins;
+	}
+
+	function registerMceButton( $buttons ) {
+		$buttons[] = 'theme-blocks';
+		return $buttons;
+	}
+
+	function adminScripts() {
+		wp_enqueue_style( 'theme-blocks-shortcode', plugins_url( 'mce-plugin.css' , __FILE__ ) );
 	}
 
 	function renderBlock( $attributes ) {
