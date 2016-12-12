@@ -18,7 +18,7 @@ class ThemeBlocks {
 	protected static $instance = null;
 
 	public $config = [
-		'shortcode' => 'block',
+		'shortcode' => 'theme-block',
 		'templateDir' => '/blocks', // Filter to blank string to use theme root.
 	];
 
@@ -86,26 +86,32 @@ class ThemeBlocks {
 
 		if ( 'true' == get_user_option( 'rich_editing' ) ) {
 			add_filter( 'mce_external_plugins', [ $this ,'registerMcePlugin' ] );
-			add_filter( 'mce_buttons', [ $this, 'registerMceButton' ] );
+			add_filter( 'mce_buttons_2', [ $this, 'registerMceButton' ] );
 
 			$jsConfig = $this->config;
-			$jsConfig['blocks'] = wp_list_pluck( $this->blocks, 'name' );
+			$jsBlocks = wp_list_pluck( $this->blocks, 'name' );
+			$jsConfig['blocks'] = array_map( function( $key, $name ) {
+				return [
+					'text' => $name,
+					'value' => $key,
+				];
+			}, array_keys( $jsBlocks ), array_values( $jsBlocks ) );
 			printf( "<script>\nvar ThemeBlocksConfig = %s;\n</script>\n", json_encode( $jsConfig ) );
 		}
 	}
 
 	function registerMcePlugin( $plugins ) {
-		$plugins[ 'theme-blocks' ] = plugins_url( 'mce-plugin.js' , __FILE__ );
+		$plugins[ 'theme_blocks_plugin' ] = plugins_url( '/mce-plugin.js' , __FILE__ );
 		return $plugins;
 	}
 
 	function registerMceButton( $buttons ) {
-		$buttons[] = 'theme-blocks';
+		$buttons[] = 'theme_blocks_button';
 		return $buttons;
 	}
 
 	function adminScripts() {
-		wp_enqueue_style( 'theme-blocks-shortcode', plugins_url( 'mce-plugin.css' , __FILE__ ) );
+		wp_enqueue_style( 'theme-blocks-shortcode', plugins_url( '/mce-plugin.css' , __FILE__ ) );
 	}
 
 	function renderBlock( $attributes ) {
@@ -113,7 +119,7 @@ class ThemeBlocks {
 			return $this->renderError( 'No block selected' );
 		}
 
-		$blockName = $attributes[0];
+		$blockName = $attributes['block'];
 
 		if ( !array_key_exists( $blockName, $this->blocks ) ) {
 			return $this->renderError( 'Invalid block selected' );
