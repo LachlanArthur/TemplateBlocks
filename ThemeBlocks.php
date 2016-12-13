@@ -71,33 +71,28 @@ class ThemeBlocks {
 	}
 
 	function registerShortcode() {
-		add_shortcode( 'block', [ $this, 'renderBlock' ] );
+		add_shortcode( $this->config['shortcode'], [ $this, 'renderBlock' ] );
 	}
 
 	function adminHooks() {
 		if ( is_admin() ){
+			add_action( 'admin_init', [ $this, 'adminInit' ] );
 			add_action( 'admin_head', [ $this, 'adminHead' ] );
 			add_action( 'admin_enqueue_scripts', array($this , 'adminScripts' ) );
 		}
 	}
 
+	function adminInit() {
+		add_action( 'wp_ajax_theme_blocks_mce_preview', array( $this, 'renderBlockPreview' ) );
+	}
+
 	function adminHead() {
 		if ( !current_user_can( 'edit_posts' ) && !current_user_can( 'edit_pages' ) ) return;
 
-		if ( 'true' == get_user_option( 'rich_editing' ) ) {
-			add_filter( 'mce_external_plugins', [ $this ,'registerMcePlugin' ] );
-			add_filter( 'mce_buttons_2', [ $this, 'registerMceButton' ] );
+		if ( 'true' != get_user_option( 'rich_editing' ) ) return;
 
-			$jsConfig = $this->config;
-			$jsBlocks = wp_list_pluck( $this->blocks, 'name' );
-			$jsConfig['blocks'] = array_map( function( $key, $name ) {
-				return [
-					'text' => $name,
-					'value' => $key,
-				];
-			}, array_keys( $jsBlocks ), array_values( $jsBlocks ) );
-			printf( "<script>\nvar ThemeBlocksConfig = %s;\n</script>\n", json_encode( $jsConfig ) );
-		}
+		add_filter( 'mce_external_plugins', [ $this ,'registerMcePlugin' ] );
+		add_filter( 'mce_buttons_2', [ $this, 'registerMceButton' ] );
 	}
 
 	function registerMcePlugin( $plugins ) {
@@ -112,10 +107,25 @@ class ThemeBlocks {
 
 	function adminScripts() {
 		wp_enqueue_style( 'theme-blocks-shortcode', plugins_url( '/mce-plugin.css' , __FILE__ ) );
+
+		wp_enqueue_script( 'theme-blocks-mce-view', plugins_url( '/mce-view.js', __FILE__ ), [ 'shortcode', 'wp-util', 'jquery' ], false, true );
+		$jsConfig = $this->config;
+		$jsBlocks = wp_list_pluck( $this->blocks, 'name' );
+		$jsConfig['blocks'] = array_map( function( $key, $name ) {
+			return [
+				'text' => $name,
+				'value' => $key,
+			];
+		}, array_keys( $jsBlocks ), array_values( $jsBlocks ) );
+		wp_localize_script( 'theme-blocks-mce-view', 'ThemeBlocksConfig', $jsConfig );
 	}
 
 	function renderBlock( $attributes ) {
-		if ( empty( $attributes ) ) {
+		$attributes = shortcode_atts( [
+			'block' => '',
+		], $attributes, $this->config['shortcode'] );
+
+		if ( empty( $attributes['block'] ) ) {
 			return $this->renderError( 'No block selected' );
 		}
 
@@ -132,6 +142,11 @@ class ThemeBlocks {
 		$blockContent = ob_get_clean();
 
 		return $blockContent;
+	}
+
+	function renderBlockPreview() {
+		echo $this->renderBlock( $_GET );
+		die();
 	}
 
 	function renderError( $message ) {
