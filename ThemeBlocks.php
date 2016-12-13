@@ -75,7 +75,7 @@ class ThemeBlocks {
 	}
 
 	function adminHooks() {
-		if ( is_admin() ){
+		if ( is_admin() ) {
 			add_action( 'admin_init', [ $this, 'adminInit' ] );
 			add_action( 'admin_head', [ $this, 'adminHead' ] );
 			add_action( 'admin_enqueue_scripts', array($this , 'adminScripts' ) );

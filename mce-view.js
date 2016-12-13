@@ -57,5 +57,7 @@
 			});
 		}
 	};
-	wp.mce.views.register(config.shortcode, wp.mce[ config.shortcode ]);
+	if (wp.mce.views) {
+		wp.mce.views.register(config.shortcode, wp.mce[ config.shortcode ]);
+	}
 })(jQuery);
