@@ -1,0 +1,4 @@
+/* Don't allow click through */
+.wpview-wrap[data-wpview-type="theme-block"][data-mce-selected="2"] .mce-shim {
+	display: block;
+}

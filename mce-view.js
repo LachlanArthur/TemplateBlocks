@@ -16,7 +16,7 @@
 					action: 'theme_blocks_mce_preview',
 				}, options),
 				success: function (data) {
-					plugin.setContent(data);
+					plugin.setIframes(data.head, data.body);
 				},
 				error: function () {
 					plugin.setContent('Error loading theme block.');

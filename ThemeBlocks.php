@@ -84,6 +84,7 @@ class ThemeBlocks {
 
 	function adminInit() {
 		add_action( 'wp_ajax_theme_blocks_mce_preview', array( $this, 'renderBlockPreview' ) );
+		add_editor_style( plugins_url( '/mce-content.css' , __FILE__ ) );
 	}
 
 	function adminHead() {
@@ -145,8 +146,20 @@ class ThemeBlocks {
 	}
 
 	function renderBlockPreview() {
-		echo $this->renderBlock( $_GET );
-		die();
+		global $wp_styles;
+
+		// Load frontend styles in preview
+		ob_start();
+		$wp_styles->reset();
+		do_action('wp_enqueue_scripts');
+		$wp_styles->do_items();
+		$wp_styles->do_footer_items();
+		$styles = ob_get_clean();
+
+		wp_send_json([
+			'head' => $styles,
+			'body' => $this->renderBlock( $_GET ),
+		]);
 	}
 
 	function renderError( $message ) {
