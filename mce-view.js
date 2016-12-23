@@ -1,3 +1,4 @@
+/* global wp, tinyMCE, ajaxurl, ThemeBlocksConfig */
 (function ($) {
 	var config = ThemeBlocksConfig;
 	wp.mce = wp.mce || {};
