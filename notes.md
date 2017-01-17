@@ -11,6 +11,8 @@
 		- [x] Preview result in visual editor
 		- [ ] Load in wpview sandbox iframe with theme CSS
 		- [ ] Display better loading animation
+- [ ] Unwrap `<p>` tags from blocks
+	- [ ] Provide option to override this in block file comment (`Unwrap: false`)
 
 ## Future
 
